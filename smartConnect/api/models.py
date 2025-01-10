@@ -1,4 +1,5 @@
 from django.db import models
+import uuid
 from django.contrib.auth.models import User
 
 class Template(models.Model):
@@ -13,13 +14,11 @@ class Template(models.Model):
 
 class Device(models.Model):
     name = models.CharField(max_length=255)
-    type = models.CharField(max_length=255)
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
-    location = models.CharField(max_length=255)
-    status = models.CharField(max_length=255)
+    device_key = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    
     def __str__(self):
         return self.name
 
