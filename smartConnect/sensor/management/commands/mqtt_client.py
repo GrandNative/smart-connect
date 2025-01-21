@@ -1,7 +1,9 @@
 from django.core.management.base import BaseCommand
 import paho.mqtt.client as mqtt
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 import json
-from api.models import Device
+from api.models import Device, UserProfile
 from sensor.models import SensorData
 from django.contrib.auth.models import User
 
@@ -11,16 +13,16 @@ def save_data(device_key, user_key, data_type, data_name, value):
     Save the sensor data to the database.
     """
     try:
-        print(f"Saved data: {device_key} -  {data_name}  - {data_type} - {value}")
+        # print(f"Saved data: {device_key} -  {data_name}  - {data_type} - {value}")
         
         # Get or create the sensor
         device = Device.objects.get(device_key=device_key)
-        user = User.objects.get(user_key = user_key)
+        user = UserProfile.objects.get(key = user_key).user
         if not device.owner == user:
             print('device and user does not match')
             return False
         # Save the sensor data based on the type
-        SensorData.objects.create(
+        sensor_data = SensorData.objects.create(
             device=device,
             data_type=data_type,
             data_name=data_name,
@@ -28,6 +30,24 @@ def save_data(device_key, user_key, data_type, data_name, value):
         )
         print(f"Saved data: {device_key} - {data_type} - {value}")
         
+        # Broadcast the data to WebSocket group
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f"device_{device.device_key}",  # WebSocket group name based on the device ID
+            {
+                "type": "send_device_data",
+                "data": {
+                    "device_key": device_key,
+                    "data_type": data_type,
+                    "data_name": data_name,
+                    "value": value,
+                    "timestamp": sensor_data.timestamp.isoformat(),
+                }
+            }
+        )
+        
+        print(f"Broadcasted data: {device_key} - {data_type} - {value}")
+
     except Device.DoesNotExist:
         print('Device with this key does not exist')
         return False

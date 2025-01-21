@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -40,7 +41,11 @@ INSTALLED_APPS = [
     'api',
     'sensor',
     'rest_framework',
+    'rest_framework_simplejwt',
+    'channels',
 ]
+
+CORS_ALLOW_ALL_ORIGINS = True
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -70,8 +75,17 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'smartConnect.wsgi.application'
+# WSGI_APPLICATION = 'smartConnect.wsgi.application'
+ASGI_APPLICATION = "smartConnect.asgi.application"
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],  # Redis server
+        },
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
